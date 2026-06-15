@@ -1,0 +1,1411 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>虚拟化与存储技术 - 完整题库版</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f4f6f8; margin: 0; padding: 0; color: #333; }
+        .header { background-color: #4a90e2; color: white; padding: 15px 20px; text-align: center; font-size: 18px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100;}
+        .mode-switch { background: rgba(255,255,255,0.2); border: 1px solid white; color: white; padding: 6px 12px; border-radius: 20px; font-size: 14px; cursor: pointer; }
+        .container { max-width: 800px; margin: 20px auto; background: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); padding: 25px; box-sizing: border-box; min-height: 70vh;}
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px;}
+        .progress { font-size: 15px; color: #666; font-weight: bold; }
+        .q-type { font-size: 13px; background: #e3f2fd; color: #1976d2; padding: 4px 8px; border-radius: 4px; }
+        .filter { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #333; }
+        .filter label { color: #555; }
+        .filter select { padding: 7px 10px; border-radius: 8px; border: 1px solid #ccc; background: white; color: #333; font-size: 14px; }
+        .question { font-size: 17px; font-weight: bold; line-height: 1.6; margin-bottom: 25px; white-space: pre-wrap;}
+        
+        /* 选项样式 */
+        .options { display: flex; flex-direction: column; gap: 12px; }
+        .option { padding: 14px 16px; border: 2px solid #eee; border-radius: 8px; background: #fafafa; font-size: 15px; cursor: pointer; transition: all 0.2s; line-height: 1.5; }
+        .option:hover { border-color: #bbdefb; }
+        .option:active { background: #f0f0f0; }
+        .option.selected { border-color: #4a90e2; background-color: #eaf3fc; }
+        .option.correct { border-color: #4caf50; background-color: #e8f5e9; color: #2e7d32; font-weight: bold;}
+        .option.wrong { border-color: #f44336; background-color: #ffebee; color: #c62828; }
+        
+        /* 简答题/填空题样式 */
+        .sa-container { display: none; margin-bottom: 20px; }
+        .sa-answer-btn { background: #fff3e0; color: #ef6c00; border: 1px solid #ffe0b2; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 15px; font-weight: bold; width: 100%; text-align: center;}
+        
+        /* 解析区域 */
+        .explanation { margin-top: 25px; padding: 20px; background-color: #f8f9fa; border-left: 4px solid #ffc107; border-radius: 6px; font-size: 15px; line-height: 1.6; display: none; }
+        .ans-label { color: #d32f2f; font-weight: bold; margin-bottom: 10px; display: block;}
+        
+        /* 背题模式强制显示 */
+        .memorize-mode .option.correct { border-color: #4caf50; background-color: #e8f5e9; font-weight: bold; }
+        
+        /* 底部控制 */
+        .controls { display: flex; justify-content: space-between; margin-top: 30px; gap: 15px;}
+        .btn { flex: 1; padding: 14px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; transition: background 0.2s; font-weight: bold;}
+        .btn-prev { background-color: #f1f3f5; color: #495057; }
+        .btn-next { background-color: #4a90e2; color: white; }
+        .btn-prev:hover { background-color: #e9ecef; }
+        .btn-next:hover { background-color: #357abd; }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        
+        /* 侧边题号跳转栏（简易版） */
+        .jump-box { margin-top: 20px; display: flex; align-items: center; justify-content: flex-end; gap: 10px; font-size: 14px; color: #666;}
+        .jump-input { width: 50px; padding: 5px; text-align: center; border: 1px solid #ccc; border-radius: 4px;}
+        .jump-btn { padding: 5px 10px; background: #eee; border: 1px solid #ccc; border-radius: 4px; cursor: pointer;}
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <span>虚拟化与存储技术</span>
+    <button class="mode-switch" id="modeBtn" onclick="toggleMode()">当前: 刷题模式</button>
+</div>
+
+<div class="container" id="app">
+    <div class="top-bar">
+        <span class="q-type" id="qTypeLabel">单选题</span>
+        <div class="filter">
+            <label for="categorySelect">练习分类:</label>
+            <select id="categorySelect" onchange="changeCategory(event)">
+                <option value="all">全部</option>
+                <option value="mcq">单选题</option>
+                <option value="tf">判断题</option>
+                <option value="short">填空/简答题</option>
+            </select>
+        </div>
+        <span class="progress" id="progress">1 / 200</span>
+    </div>
+    
+    <div class="question" id="questionText">题库加载中...</div>
+    
+    <div class="options" id="optionsContainer"></div>
+    
+    <div class="sa-container" id="saContainer">
+        <button class="sa-answer-btn" id="showAnsBtn" onclick="showSAAnswer()">点击查看答案</button>
+    </div>
+    
+    <div class="explanation" id="explanationText"></div>
+    
+    <div class="controls">
+        <button class="btn btn-prev" id="prevBtn" onclick="prevQuestion()">上一题</button>
+        <button class="btn btn-next" id="nextBtn" onclick="nextQuestion()">下一题</button>
+    </div>
+    
+    <div class="jump-box">
+        跳转到: <input type="number" id="jumpInput" class="jump-input" min="1" max="200">
+        <button class="jump-btn" onclick="jumpTo()">Go</button>
+    </div>
+</div>
+
+<script>
+    // 【核心】内置了完整的 200 道题文本文档，通过 JS 动态解析
+    const rawData = `
+1、虚拟机通过什么技术将物理资源抽象成逻辑资源?
+A、模拟技术
+B、虚拟化技术
+C、克隆技术
+D、分布式技术
+答案: B
+解析:虚拟机通过虚拟化技术将物理资源(如CPU、内存、存储、网络等)抽象成逻辑资源,为每个虚拟机提供独立的计算环境。
+
+2、系统虚拟机和进程虚拟机的主要区别是什么?
+A、系统虚拟机运行完整的操作系统,进程虚拟机运行特定应用程序
+B、系统虚拟机运行特定应用程序,进程虚拟机运行完整的操作系统
+C、系统虚拟机和进程虚拟机没有区别
+D、系统虚拟机用于备份,进程虚拟机用于测试
+答案: A
+解析:系统虚拟机能够运行完整的操作系统,而进程虚拟机用于运行特定的应用程序。
+
+3、虚拟机快照的主要用途不包括以下哪一项?
+A、系统恢复
+B、测试和开发
+C、数据加密
+D、临时配置
+答案: C
+解析:快照主要用途包括恢复、测试、备份，不包括加密。
+
+4、虚拟机的隔离性主要体现在:
+A、不同虚拟机可以共享同一操作系统
+B、不同虚拟机之间相互隔离,运行独立的操作系统
+C、虚拟机可以访问物理机的所有资源
+D、虚拟机之间可以自由访问彼此的数据
+答案: B
+
+5、以下哪种虚拟机主要用于运行完整的操作系统?
+A、系统虚拟机
+B、进程虚拟机
+C、应用虚拟机
+D、网络虚拟机
+答案: A
+
+6、KVM虚拟化技术的核心是什么?
+A、基于Windows 内核
+B、基于Linux 内核
+C、基于MacOS 内核
+D、基于BSD 内核
+答案: B
+
+7、安装 KVM 前需要关闭防火墙的命令是?
+A、systemctl start firewalld
+B、systemctl disable firewalld
+C、firewall-cmd --reload
+D、iptables-F
+答案: B
+
+8、创建物理卷(PV) sdb1 的命令是?
+A、vgcreate /dev/sdb1
+B、lvcreate /dev/sdb1
+C、pvcreate /dev/sdb1
+D、fdisk /dev/sdb1
+答案: C
+
+9、libvirt的主要功能是?
+A、提供 Linux 内核模块
+B、提供虚拟化管理程序的编程接口
+C、直接管理物理硬件
+D、替代 KVM 功能
+答案: B
+
+10、安装KVM 时需要安装的软件包不包括?
+A、qemu-kvm
+B、openssl
+C、libvirt
+D、docker
+答案: D
+
+11、KVM 可视化管理工具 virt-manager 是基于 开发的。
+答案: libvirt
+解析: virt-manager 依赖 libvirt.
+
+12、虚拟机迁移时需确保目标宿主机的的__________兼容
+答案: CPU 架构一致
+解析: 不同 CPU 架构可能导致虚拟机无法运行。
+
+13、关闭 SELinux 需要修改的配置文件是: /etc/sysconfig/__
+答案: selinux
+
+14、简述 KVM的安装步骤(至少列出5步)。
+答案: 
+1. 更换阿里镜像源并更新;
+2. 关闭防火墙和 SELinux;
+3. 检查CPU 虚拟化支持;
+4. 卸载旧 KVM组件;
+5. 安装 qemu-kvm、libvirt等软件包;
+6. 启动并设置 libvirtd 服务开机自启;
+7. 验证 KVM 模块加载。
+
+15、libvirt 是一套 _________ 的支持 Linux下主流虚拟化管理程序的C函数库。
+答案: 免费、开源
+
+16、简述 libvirt 库在 KVM 虚拟化中的作用。
+答案: libvirt 库在 KVM 虚拟化中扮演着至关重要的角色。它是一套免费、开源的支持 Linux 下主流虚拟化管理程序的 C 函数库，为包括 KVM在内的各种虚拟化管理程序提供了一套方便、可靠的编程接口。通过libvirt 库，用户可以方便地管理虚拟机、存储、网络等虚拟化资源，实现虚拟机的创建、配置、迁移、监控等操作。同时，libvirt 库也是主流 Linux 平台上默认的虚拟化管理工具（如 virt-manager、virsh等）的基础，为这些工具提供了底层的支持
+
+17、在安装可视化管理工具时,用于进入可视化界面的命令是()
+A、startx
+B、starty
+C、startz
+D、startw
+答案: A
+
+18、在安装可视化管理工具时,以下命令用于安装虚拟化管理工具的是()
+A、yum groupinstall "X Window System"
+B、yum groupinstall" GNOME Desktop"
+C、yum install -y virt-manager
+D、startx
+答案: C
+
+19、以下快捷键用于在可视化界面和命令行界面快速切换的是()
+A、ctrl+alt+F1和 ctrl+alt+F2
+B、ctrl+alt+F1和 ctrl+alt+F3
+C、ctrl+alt+F2和ctrl+alt+F3
+D、ctrl+alt+F1和 ctrl+alt+F4
+答案: B
+
+20、在安装可视化管理工具时,输入yum install -y virt-manager 用于安装 ______。
+答案: 虚拟化管理工具
+
+21、VNC (Virtual Network Computing)是一款什么样的远程控制工具?
+A、基于Windows 的付费软件
+B、基于UNIX和Linux的免费开源软件
+C、基于MAC的商业软件
+D、基于Android的免费软件
+答案: B
+
+22、VNC 主要由哪两部分组成?
+A、客户端应用程序和浏览器
+B、客户端(VNC Viewer)和服务器端(VNC Server)
+C、服务器端和 Java Web 接口
+D、客户端和 X Server
+答案: B
+
+23、在关闭 VNC 端口1时,关闭指定端口的命令是()
+A、vncserver -kill :1
+B、vncserver -stop :1
+C、vncserver -close :1
+D、vncserver -remove :1
+答案: A
+
+24、VNC 主要由客户端应用程序 和服务器端应用程序 _____ 组成。
+答案: VNC Viewer ; VNC Server
+
+25、在安装 KVM 和可视化管理界面时,关闭 Selinux 的命令是 vi /etc/sysconfig/selinux 并将 ____ 设置为 ____。
+答案: SELINUX ; disabled
+
+26、简述一下VNC 的工作流程
+答案: （1）在服务器端启动VNCServer。
+（2）VNC 客户端通过浏览器或 VNC 软件连接至 VNCServer。
+（3）VNCServer 传送一对话窗口至客户端，要求输入连接密码，以
+及存取的 VNCServer 显示装置。
+（4）在客户端输入联机密码后，VNCServer 验证客户端是否具有存
+
+取权限。
+（5）若是客户端通过VNCServer的验证，客户端即要求 VNCServer
+显示桌面环境。
+（6）VNCServer 通过 View 将画面显示控制权交由 VNCServer 负
+责。
+（7）VNCServer 将来由XServer的桌面环境利用 VNC 通信协议送至
+客户端，并且允许客户端控制 VNCServer 的桌面环境及输入装置。
+
+27、Virtio是一种用于虚拟化环境的()
+A、网络协议
+B、标准化 I/O 设备接口
+C、数据库管理系统
+D、操作系统
+答案: B
+
+28、Virtio的主要目的是()
+A、提高虚拟机的图形性能
+B、提高内存、硬盘、网络的性能
+C、提高虚拟机的启动速度
+D、提高用户界面友好度
+答案: B
+
+29、Virtio广泛应用于以下哪些虚拟化平台?
+A、KVM
+B、Xen
+C、QEMU
+D、以上都是
+答案: D
+
+30、Virtio 的前端驱动安装在__________中，负责接收 I/O 请求。
+答案: 客户机操作系统
+
+31、如果虚拟机中没有加载 virtio 模块，需要手动加载 virtio_blk 和 __________。
+答案: virtio_net
+
+32、简述 Virtio 的主要作用。
+答案: 提高虚拟机与宿主机硬件间的通信效率，通过优化数据传递机制显著降低延迟，避免传统全虚拟化的硬件模拟开销。
+
+33、简述 Virtio 的前端驱动和后端设备的作用。
+答案: 前端驱动：安装在客户机OS中，接收I/O请求并传至后端。后端设备：运行于宿主机中，处理实际硬件操作并将结果返回给前端。
+
+34、在 KVM 中，若要创建卷组（VG）sdb1 的命令是
+A、fdisk /dev/sdb
+B、pvcreate /dev/sdb1
+C、vgcreate vmvg /dev/sdb1
+D、lvcreate -n lvvml -l 20479 vmvg
+答案: C
+
+35、在 KVM 环境中，查看磁盘信息的命令是（ ）
+A、cat /etc/redhat-release
+B、fdisk -l | more
+C、lsblk
+D、mount
+答案: B
+
+36、libvirt 是一个（ ）
+A、仅支持 KVM 的管理工具
+B、开放源代码的应用程序接口、守护进程和管理工具
+C、仅支持 Windows 虚拟化的工具
+D、仅支持容器虚拟化的工具
+答案: B
+
+37、virt-install 适合的使用场景不包括（ ）
+A、自动化和脚本化部署
+B、服务器环境
+C、图形化操作
+D、远程管理
+答案: C
+
+38、在 virt-install 中，指定虚拟机 CPU 数量的参数是（ ）
+A、--name
+B、--ram
+C、--vcpus
+D、--os-type
+答案: C
+
+39、libvirt 是一个开放源代码的应用程序接口、守护进程和 __________。
+答案: 管理工具
+
+40、在虚拟机中，Hypervisor 指的是__________。
+答案: 虚拟监控器
+
+41、指定虚拟机名称的参数是__________，内存大小的参数是__________，CPU 数量的参数是 __________。
+答案: --name ; --ram ; --vcpus
+
+42、简述 libvirt 的配置流程。
+答案: 1.创建domain为根元素的XML。2.指定name。3.配置CPU/内存。4.配置虚拟设备。5.保存配置。
+
+43、简述虚拟机技术与容器虚拟化技术的差别。
+答案: 虚拟机通过Hypervisor虚拟化硬件并运行完整Guest OS；容器直接运行于宿主机内核，无硬件虚拟化，更加轻量、启动快且占用资源少。
+
+44、根据宏内核和微内核的对比，以下哪一项是微内核的特点？
+A、通信效率高（函数调用）
+B、稳定性低（模块集成在一起）
+C、扩展性高（模块间互不影响）
+D、代码量多（需要实现所有模块）
+答案: C
+
+45、以下哪种接口类型适用于数据中心的高性能计算？
+A、IDE
+B、SCSI
+C、SATA
+D、NVMe
+答案: D
+
+46、哪种网络模式下的虚拟机不能直接访问外部网络？
+A、桥接模式
+B、NAT 模式
+C、仅主机模式
+D、以上都不是
+答案: C
+
+47、在 CentOS 7 中配置网卡时，若设置 BOOTPROTO 为 static，需要额外配置哪些属性？
+A、GATEWAY, DNS, BROADCAST
+B、NETMASK, BROADCAST, DNS
+C、IPADDR, NETMASK, GATEWAY
+D、IPADDR, GATEWAY, DNS
+答案: D
+
+48、以下哪个是修改网卡 ens33 所需要的指令？
+A、vi /etc/network-scripts/sysconfig/ifcfg-ens33
+B、vi /etc/sysconfig/network-scripts/ifcfg-ens33
+C、vi /network-scripts/etc/sysconfig/ifcfg-ens33
+D、vi /network-scripts/sysconfig/etc/ifcfg-ens33
+答案: B
+
+49、KVM 平台有两种存储方式，以下哪个属于基于设备的存储？
+A、dir
+B、fs
+C、netfs
+D、Disk
+答案: D
+
+50、哪种类型的虚拟磁盘在配置时会指定磁盘大小，并且将占用相同大小的主机磁盘空间？
+A、固定（Fixed）
+B、动态（Dynamic）
+C、差分（Differencing）
+D、以上都不是
+答案: A
+
+51、以下哪个是使用 dd 命令模拟创建一个 2GB 大小且没有空洞的磁盘文件的指令？
+A、dd if=/dev/zero of=flat1.img bs=1024k count=1000
+B、dd if=/dev/zero of=flat1.img bs=2048k count=1000
+C、dd if=/dev/zero of=flat1.img bs=2048k count=500
+D、dd if=/dev/zero of=flat1.img bs=1024k count=500
+答案: B
+
+52、Docker 的主要优势是什么？
+A、高资源占用
+B、快速启动和轻量级
+C、需要模拟完整的操作系统
+D、启动缓慢
+答案: B
+
+53、Docker 容器与虚拟机的主要区别是什么？
+A、Docker 容器需要模拟完整的操作系统
+B、Docker 容器之间的应用进程不隔离
+C、Docker 容器共享宿主机的内核
+D、Docker 容器启动缓慢
+答案: C
+
+54、以下哪个命令用于启动 Docker 服务？
+A、sudo systemctl stop docker
+B、sudo systemctl start docker
+C、sudo systemctl disable docker
+D、sudo systemctl enable docker
+答案: B
+
+55、Docker 是一个开源的__________，可以让开发者打包他们的应用。
+答案: 应用容器引擎
+
+56、虚拟机技术的缺点包括资源占用多、冗余步骤多和__________。
+答案: 启动慢
+
+57、以下哪个命令用于拉取 Docker 官方的 registry 镜像？
+A、docker pull registry
+B、docker pull docker:latest
+C、docker pull mysql:5.7
+D、docker pull hello-world
+答案: A
+
+58、编写 daemon.json 脚本的命令是
+A、vi /etc/docker/daemon.json
+B、vi /etc/docker/config.json
+C、vi /etc/docker/registry.json
+D、vi /etc/docker/settings.json
+答案: A
+
+59、空洞磁盘在 cp 命令默认复制后，新磁盘为什么磁盘？
+A、非空洞磁盘
+B、空洞磁盘
+C、差分磁盘
+D、以上均不对
+答案: B
+
+60、preallocation 参数允许的四个值分别是？
+A、on, metadata, falloc, fill
+B、off, metadata, falloc, full
+C、off, metadata, malloc, fill
+D、off, data, malloc, full
+答案: B
+
+61、将 Windows 中的虚拟机导出为 vmdk 并放入 KVM 环境中迁移，是否需要对磁盘进行格式转换？
+A、不需要
+B、需要
+C、看情况而定
+D、以上均不正确
+答案: B
+
+62、将一个名为 test_centos79-disk1 的 vmdk 磁盘转换为 qcow2 磁盘需要键入的命令是?
+A、qemu-img convert-f vmdk-O qcow2 test_centos79 disk1.qcow2 test_centos79-disk1.vmdk
+B、qemu-img convert-f vmdk-O qcow2 test_centos79-disk1.vmdk test_centos79-disk1.qcow2
+C、qemu-img convert-c vmdk-O qcow2 test_centos79-disk1.vmdk test_centos79-disk1.qcow2
+D、qemu-img convert-c vmdk-O qcow2 test_centos79 disk1.qcow2 test_centos79-disk1.vmdk
+答案: B
+
+63、在嵌套虚拟机中，对/vm 下的 Base_CentOS79.qcow2 进行创建快照的指令是哪个？
+A、qemu-img snapshot-c s1 /vm/Base_CentOS79.qcow2
+B、qemu-img snapshot-l /vm/Base_CentOS79.qcow2
+C、qemu-img snapshot-a s1 /vm/Base_CentOS79.qcow2
+D、qemu-img snapshot-d s1 /vm/Base_CentOS79.qcow2
+答案: A
+
+64、对于一个虚拟机来说，存储池和存储卷是否是必须存在的？
+A、是
+B、不是
+C、看情况而定
+D、以上均不正确
+答案: B
+
+65、想要将客户端挂载目录与NFS服务器挂载成功，需要键入哪个指令？
+A、mount nfs -t 192.168.226.100:/s1 /c1
+B、mount nfs -t 192.168.226.100:/c1 /s1
+C、mount -t nfs 192.168.226.100:/s1 /c1
+D、mount -t nfs 192.168.226.100:/c1 /s1
+答案: C
+
+66、以下关于 LVM 的说法哪个是错误的？
+A、LVM 可以将多块硬盘看作一块大硬盘。
+B、可以动态调整 LV 的大小。
+C、LVM 不允许被创建快照。
+D、调整 LV 大小时不用考虑在硬盘上的物理位置。
+答案: C
+
+67、以下关于虚拟网桥，说法正确的是？
+A、虚拟网桥不是网桥概念在网络虚拟化环境中的延伸。
+B、虚拟网桥也可以像传统网桥那样以硬件设备形式存在。
+C、虚拟网桥不可以连接虚拟网络与物理网络接口。
+D、以上均不正确
+答案: D
+
+68、有两块硬盘分别是 sda 和 sdb。现在分别对 sda 和 sdb 进行分区处理，sda 分成三份，分别记为/dev/sda1、/dev/sda2、/dev/sda3。sdb 分成两份，分别记为/dev/sdb1、/dev/sdb2。对除了/dev/sda1 以外的所有分区进行创建物理卷。对这些不同分区的物理卷，以下哪个配对不能组成卷组？
+A、/dev/sda2 和 /dev/sda3
+B、/dev/sda3 和 /dev/sdb1
+C、/dev/sda3 和 /dev/sdb2
+D、/dev/sda1 和 /dev/sdb2
+答案: D
+
+69、现在的操作系统内核主要分为______、______、______。
+答案: 宏内核 ; 微内核 ; 混合内核
+
+70、IDE 操作接口的优点是_________、__________。
+答案: 成本低 ; 配置简单
+
+71、IDE 的数据传输方式是_________。
+答案: 并行
+
+72、简要描述宏内核和微内核之间的差别，从通信效率、稳定性、扩展性和代码量来说
+答案: 从通信效率来说，宏内核的效率更高，微内核的效率更低。
+从稳定性来说，宏内核的稳定性低，微内核的稳定性更高。
+从扩展性来说，宏内核的扩展性低，微内核的扩展性更高。
+从代码量来说，宏内核的代码量多，微内核的代码量更少。
+
+73、简要描述 NFS 的工作流程。
+答案: 1）首先服务器端启动 RPC 服务，并开启 111 端口
+2）服务器端启动 NFS 服务，并向 RPC 注册端口信息
+3）客户端启动 RPC（portmap 服务），向服务端的 RPC(portmap)服务
+请求服务端的 NFS 端口
+4）服务端的 RPC(portmap)服务反馈 NFS 端口信息给客户端。
+5）客户端通过获取的 NFS 端口来建立和服务端的 NFS 连接并进行
+
+74、简要描述存储池的特点。
+答案: （1）集中管理：存储池采用集中式管理架构，可以方便地统一管理和
+监控多个存储设备。
+（2）动态分配：存储池可以根据业务需求实现存储空间的动态分配，
+有效提高存储资源利用率。
+（3）高可用性：存储池可以实现数据的备份和恢复，提高数据的可靠
+性和系统的可用性。
+（4）可扩展性：存储池可以随时添加新的存储设备，以满足不断增长
+的存储需求。
+
+75、LVM 的组成部分都有哪些？这些组成部分的具体工作是什么？
+答案: 1物理卷(PV，PhysicalVolume)
+一个可供存储 LVM 的块设备.如硬盘分区（MBR 或 GPT 分区）、
+SAN的硬盘、RAID或LUN，一个回环文件,一个被内核映射的设备(例
+如dm-crypt)，它包含一个特殊的 LVM 头，它是LVM构建的实际硬件
+或存储系统。
+2卷组(VG，VolumeGroup)
+卷组是对一个或多个物理卷的集合，并在设备文件系统中显示为
+/dev/VG_NAME。
+
+3逻辑卷(LV，LogicalVolume)
+逻辑卷是可供系统使用的最终元设备，它们在卷组中创建和管理，由
+物理块组成，实际上就是一个虚拟分区，并显示为
+/dev/VG_NAME/LV_NAME，通常在其上可以创建文件系统。
+4物理块(PE，PhysicalExtends)
+一个卷组中最小的连续区域(默认为 4MB)，多个物理块将被分配给一
+个逻辑卷。你可以把它看成物理卷的一部分，这部分可以被分配给一
+个逻辑卷。
+
+76、简述虚拟网桥的工作原理。
+答案: MAC 地址学习
+虚拟网桥通过学习虚拟机或虚拟网络接口的 MAC 地址来构建转发
+表。当虚拟网桥接收到一个数据帧时，它会检查该帧的源 MAC 地
+址，并将其与接收该帧的端口（在虚拟环境中是虚拟端口）关联起
+来，记录在转发表中。例如，虚拟网桥接收到一个从虚拟机 A 发来的
+数据帧，帧的源 MAC 地址是虚拟机 A 的 MAC 地址。虚拟网桥会记
+录下虚拟机 A 的 MAC 地址与对应的虚拟端口之间的映射关系。
+帧转发
+当虚拟网桥接收到一个数据帧时，它会根据转发表中的记录来决定如
+何处理该帧。如果转发表中存在该帧的目的 MAC 地址对应的端口信
+息，虚拟网桥会将该帧转发到对应的端口。如果转发表中没有该帧的
+目的 MAC 地址，虚拟网桥会将该帧广播到所有端口（除了接收该帧
+的端口），以便让其他设备能够接收到该帧并响应。例如，虚拟机 B
+要向虚拟机 C 发送数据帧。虚拟网桥根据转发表发现虚拟机 C 的
+
+MAC 地址对应的端口，于是将数据帧转发到该端口，从而实现虚拟机
+B 和虚拟机 C 之间的通信。
+环路避免
+在虚拟网络环境中，可能会存在多个虚拟网桥连接在一起，形成环
+路。为了避免环路导致的广播风暴等问题，虚拟网桥通常会采用生成
+树协议（STP）或其变种。生成树协议通过计算生成树，将网络中的环
+路逻辑上断开，从而确保数据帧在网络中只能沿着唯一的路径传输。
+虚拟网桥会根据生成树协议的算法，选择一些端口作为阻塞端口，阻
+止数据帧通过这些端口，从而避免环路。
+
+77、设置 libvirt 开机自启动的指令？
+A、systemctl start libvirtd
+B、systemctl libvirtd start
+C、systemctl enable libvirtd
+D、systemctl libvirtd enable
+答案: C
+
+78、以下关于 KVM 的陈述，哪项是正确的？
+A、KVM 独立在 Linux 内核之外。
+B、在KVM中，虚拟机是一个 Linux进程，由用户空间和内核空间进行调度和管理
+C、利用KVM运行的虚拟机可受益于Linux的性能特性，且用户可以利用Linux调度程序提供的精细控制。
+D、以上均不正确
+答案: C
+
+79、创建 PV 和 VG 之后，要查看 VG 中的哪个属性去进行下一步分配？
+A、VG size
+B、PE size
+C、Alloc PE
+D、Free PE
+答案: D
+
+80、virt-install 中 -r MEMORY 表示________, 单位是________。
+答案: 虚拟机内存大小 ; MB
+
+81、VNC 使用 TCP 端口从 5900 开始，桌面号为“18”的端口号是___________。
+答案: 5918
+
+82、使用 dockerfile 去构建新镜像的步骤是以下三条操作按照什么顺序进行的？
+1.
+docker run 镜像
+2.
+docker build 镜像
+3.
+编写 dockerfile 文件
+
+A、123
+B、231
+C、312
+D、321
+答案: D
+
+83、_________运行完整的操作系统，_________运行特定应用程序。
+答案: 系统虚拟机 ; 进程虚拟机
+
+84、配置 KVM 环境前关闭防火墙指令是 ___________。
+答案: systemctl disable firewalld
+
+85、以下哪个不是当前操作系统的内核分类？
+A、宏内核
+B、微内核
+C、多内核
+D、混合内核
+答案: C
+
+86、preallocation 参数允许的四个值分别是__________。
+答案: off ; metadata ; falloc ; full
+
+87、在 CentOS 7 中设置静态IP需要额外配置________。
+答案: IPADDR ; GATEWAY ; DNS
+
+88、以下关于 NFS 的论述正确的是？
+A、Server 和 Client 必须一一对应。
+B、Server 和 Client 配置方法相同。
+C、NFS 中的 Client 端的挂载目录无法挂载到目标 Server 端的共享目录上，只可能是网络原因。
+D、以上说法均不正确。
+答案: D
+
+89、SATA 的数据传输方式是串行，它的优点是________。
+答案: 高传输速率 ; 支持热插拔 ; 易于安装
+
+90、在 NAT 模式中，主机网卡连接________设备，该设备和________一起连接在_________交换机上。
+答案: 虚拟 NAT ; 虚拟 DHCP 服务器 ; VMnet8
+
+91、以下哪种虚拟机类型用于运行完整的操作系统？
+A、进程虚拟机
+B、系统虚拟机
+C、Java 虚拟机
+D、应用虚拟机
+答案: B
+
+92、以下哪种不是操作系统内核的主要分类？
+A、宏内核
+B、微内核
+C、混合内核
+D、外核
+答案: D
+
+93、NAT 模式下，虚拟机通过哪个虚拟网卡与外部网络通信？
+A、VMnet0
+B、VMnet1
+C、VMnet8
+D、VMnet9
+答案: C
+
+94、KVM 是以下哪一部分的组成部分？
+A、Windows 内核
+B、Linux 内核
+C、Hyper-V
+D、VirtualBox
+答案: B
+
+95、使用以下哪个命令可以列出所有虚拟机？
+A、virsh list --all
+B、vm-list
+C、kvm-list
+D、qemu-list
+答案: A
+
+96、半虚拟化驱动（virtio）主要用于提高哪些性能？
+A、仅 CPU
+B、内存、硬盘、网络
+C、仅图形
+D、仅存储
+答案: B
+
+97、libvirt 的主要功能不包括：
+A、虚拟机管理
+B、虚拟网络管理
+C、物理机监控
+D、存储管理
+答案: C
+
+98、以下哪个命令用于创建快照？
+A、qemu-img snapshot -c
+B、qemu-img snapshot -d
+C、qemu-img snapshot -l
+D、qemu-img snapshot -a
+答案: A
+
+99、NFS 服务向 RPC 注册端口信息的作用是：
+A、客户端发现服务
+B、服务端发现客户端
+C、加密数据传输
+D、负载均衡
+答案: A
+
+100、存储池的主要作用是：
+A、替代物理存储
+B、集中管理存储资源
+C、加密数据
+D、备份数据
+答案: B
+
+101、逻辑卷（LV）调整大小时需要注意的是：
+A、必须连续空间
+B、必须重启虚拟机
+C、不需连续空间
+D、必须使用 raw 格式
+答案: C
+
+102、Docker 主要用于解决：
+A、硬件虚拟化
+B、运行环境和配置问题
+C、网络配置
+D、存储管理
+答案: B
+
+103、构建 Docker 镜像的命令是：
+A、docker run
+B、docker build
+C、docker pull
+D、docker push
+答案: B
+
+104、虚拟机分为系统虚拟机和__________虚拟机。
+答案: 进程
+
+105、内核的三种主要类型是：宏内核、微内核和__________内核。
+答案: 混合
+
+106、在 NAT 模式下，虚拟机通过__________虚拟网卡与外部通信。
+答案: VMnet8
+
+107、KVM 是__________内核的一部分。
+答案: Linux
+
+108、使用__________命令可以启动 libvirtd 服务。
+答案: systemctl start libvirtd
+
+109、半虚拟化驱动__________用于提高 I/O 性能。
+答案: virtio
+
+110、libvirt 的配置文件使用__________格式。
+答案: XML
+
+111、启动 libvirt 并设置开机自启动的命令分别是 start 和 ____。
+答案: systemctl enable libvirtd
+
+112、KVM 存储模式中，预分配模式的参数包括____和____。
+答案: preallocation=full ; preallocation=falloc
+
+113、NAT 模式中，主机网卡直接与____设备相连。
+答案: 虚拟 NAT
+
+114、Centos7 网卡默认配置文件位置是____。
+答案: /etc/sysconfig/network-scripts/
+
+115、KVM 中提升性能的驱动类型是____。
+答案: 半虚拟化（virto）
+
+116、简述 KVM 虚拟化技术的主要特点。
+答案: KVM 是 Linux 内核模块，虚拟机表现为进程；支持安全、存储、硬件加速和实时迁移。
+
+117、桥接模式、NAT 模式和仅主机模式的区别是什么？
+答案: 桥接：独立IP直接对外；NAT：共享主机IP转换；仅主机：完全隔离外部。
+
+118、Docker 的主要特点及其应用场景是什么？
+答案: 轻量、可移植，适用于微服务、持续集成和快速部署。
+
+119、如何配置 Centos7 网卡的静态 IP？
+答案: 修改/etc/sysconfig/network-scripts/ifcfg-ens33，设置BOOTPROTO=static，添加 IPADDR、GATEWAY、DNS
+
+120、虚拟机与物理网络处于同一网段、拥有独立 IP 的网络模式是()。
+A、NAT 模式
+B、桥接模式
+C、仅主机模式
+D、自定义模式
+答案: B
+
+121、创建虚拟机时，哪种虚拟磁盘类型在创建时即占用全部预设空间?()
+A、精简置备
+B、厚置备延迟置零
+C、厚置备置零
+D、差分磁盘
+答案: C
+
+122、KVM 基于以下哪个操作系统内核实现?()
+A、Windows NT 内核
+B、Linux 内核
+C、macOS XNU 内核
+D、FreeBSD 内核
+答案: B
+
+123、virt-install 指定操作系统类型的参数是()。
+A、--name
+B、--ram
+C、--os-type
+D、--disk
+答案: C
+
+124、基于 libvirt 开发的 KVM 图形化管理工具是()
+A、vSphere Client
+B、virt-manager
+C、Hyper-V Manager
+D、Docker Desktop
+答案: B
+
+125、KVM 迁移时通常需要保持()一致。
+A、显示器分辨率
+B、CPU 架构与虚拟化扩展
+C、硬盘品牌
+D、网卡 MAC 地址
+答案: B
+
+126、OpenStack 负责计算资源调度的核心组件是()。
+A、Nova
+B、Neutron
+C、Swift
+D、Keystone
+答案: A
+
+127、Docker 容器与传统虚拟机最本质的区别是()。
+A、需要模拟完整系统
+B、共享宿主机内核
+C、启动更慢
+D、占用资源更多
+答案: B
+
+128、从 Docker Hub 拉取镜像的命令是()
+A、docker push
+B、docker pull
+C、docker build
+D、docker commit
+答案: B
+
+129、Dockerfile 中指定默认执行命令的指令是()。
+A、CMD
+B、COPY
+C、RUN
+D、EXPOSE
+答案: A
+
+130、Docker Compose 的默认配置文件是()。
+A、docker-compose.yml
+B、dockerfile
+C、compose.json
+D、swarm.yml
+答案: A
+
+131、Kubernetes 最小调度单元是()。
+A、Node
+B、Pod
+C、Service
+D、Deployment
+答案: B
+
+132、Jenkins 主要用于实现()。
+A、代码版本管理
+B、持续集成与持续交付(CI/CD)
+C、容器镜像仓库
+D、日志监控
+答案: B
+
+133、哪一项属于类型 1(裸金属)Hypervisor?()
+A、VMware Workstation
+B、KVM
+C、VMware ESXi
+D、VirtualBox
+答案: C
+
+134、描述由物理卷聚合而成、供逻辑卷分配的存储集合的是()。
+A、PV
+B、VG
+C、LV
+D、PE
+答案: B
+
+135、VMware 常见的三种网络连接模式包括____、____和____。
+答案: 桥接模式 ; NAT 模式 ; 仅主机模式
+
+136、安装 KVM 通常需要____、____和____等核心包。
+答案: qemu-kvm ; libvirt ; virt-manager
+
+137、列出所有虚拟机的命令是____，启动是____，关闭是____。
+答案: virsh list --all ; virsh start ; virsh shutdown
+
+138、OpenStack 三大核心项目：计算____、网络____、存储____。
+答案: Nova ; Neutron ; Cinder
+
+139、Docker镜像由____组成，查看命令是____，运行命令是____。
+答案: 镜像层 ; docker images ; docker run
+
+140、Dockerfile 中指定基础镜像是____，复制文件是____，执行命令是____。
+答案: FROM ; COPY ; RUN
+
+141、Docker Compose 配置文件是____，启动命令是____，停止是____。
+答案: docker-compose.yml ; docker-compose up ; docker-compose down
+
+142、K8s 集群由____节点和____节点组成，Pod 包含一个或多个____。
+答案: Master ; Worker ; 容器
+
+143、LVM 的存储层次结构依次包括____、____和____。
+答案: 物理卷 ; 卷组 ; 逻辑卷
+
+144、DevOps 强调____、____和____的深度融合。
+答案: 开发 ; 运维 ; 质量保障
+
+145、VMware Workstation 只能安装在 Windows 操作系统上。
+答案: 错误
+
+146、KVM 虚拟化必须依赖 CPU 硬件虚拟化扩展才能运行。
+答案: 正确
+
+147、OpenStack 是一个开源的云计算管理平台，可构建私有云和公有云。
+答案: 正确
+
+148、Docker 容器之间共享内核，但拥有独立文件系统和进程空间。
+答案: 正确
+
+149、Docker 镜像一旦构建完成，就无法再被修改或更新。
+答案: 错误
+
+150、Kubernetes 和 Docker Swarm 都是容器编排工具。
+答案: 正确
+
+151、Jenkins 仅支持 Java 语言项目的持续集成。
+答案: 错误
+
+152、VMware 的 NAT 模式下，虚拟机可直接被外部设备访问。
+答案: 错误
+
+153、KVM 的逻辑卷(LV)只能使用连续的物理磁盘空间。
+答案: 错误
+
+154、virtio 是一种半虚拟化驱动，能提升 KVM 虚拟机的 I/O 性能。
+答案: 正确
+
+155、简述桥接模式、NAT模式和仅主机模式的主要区别。
+答案: 桥接模式:虚拟机通过物理网卡与物理网络桥接，获得独立
+IP，可直接与外部网络通信;NAT 模式:虚拟机共享主机 IP，通过地址
+转换访问外部网络，外部无法直接访问虚拟机;仅主机模式:虚拟机仅能
+与宿主机及同一 VMnet 上的其他虚拟机通信，完全隔离外部网络。
+
+156、简述 KVM 的主要特点及安装准备工作。
+答案: KVM 是基于 Linux 内核的开源硬件辅助虚拟化技术，虚拟机
+作为普通 Linux 进程运行，性能高、兼容性好。安装前需:检查 CPU
+是否支持并开启 VT-x/AMD-V 虚拟化;关闭 SELinux;关闭或配置防火
+墙;配置 yum 源;安装 qemu-kvm、libvirt 等软件包
+
+157、简述 Docker 优势及镜像、容器、仓库关系。
+答案: 优势启动速度快、资源占用少、体积小、部署灵活，容器共享
+宿主机内核，无需模拟完整操作系统。关系:镜像是只读模板，用于创
+建容器;容器是镜像的运行实例;仓库用于集中存储、分发和管理镜像。
+
+158、简述 K8s 基本架构及其 Pod 的作用。
+答案: Kubernetes 集群由 Master 节点(控制平面，负责调度、API、控
+制等)和 Worker 节点(运行实际工作负载)组成。Pod 是 Kubernetes 中
+最小的调度单元，一个 Pod 可包含一个或多个紧密耦合的容器，这些
+容器共享网络命名空间和存储卷。
+
+159、简述 DevOps 核心理念及 Jenkins 作用。
+答案: DevOps 强调开发、运维、测试团队之间的协作与沟通，通过自
+动化工具链实现持续集成、持续交付和持续部署，缩短交付周期、提
+高软件质量。Jenkins 作为开源自动化服务器，常用于自动拉取代码、
+构建、测试、打包和部署应用，是 CI/CD 流程的核心工具之一。
+
+160、VMware 中实现文件拖拽复制粘贴的组件是()。
+A、VMware Tools
+B、VNC Server
+C、OpenStack Client
+D、Docker Daemon
+答案: A
+
+161、指定虚拟机磁盘文件路径的参数是()
+A、--cdrom
+B、--disk
+C、--network
+D、--graphics
+答案: B
+
+162、KVM 管理虚拟网络的默认网桥名称是()。
+A、docker0
+B、virbr0
+C、eth0
+D、br0
+答案: B
+
+163、OpenStack 提供对象存储服务的组件是()。
+A、Cinder
+B、Swift
+C、Glance
+D、Keystone
+答案: B
+
+164、Docker 查看运行容器的命令是()。
+A、docker images
+B、docker ps
+C、docker logs
+D、docker inspect
+答案: B
+
+165、进入正在运行的容器内部执行命令的是()
+A、docker attach
+B、docker exec
+C、docker start
+D、docker run
+答案: B
+
+166、Kubernetes 实现服务发现和负载均衡的对象是()。
+A、Pod
+B、Deployment
+C、Service
+D、ConfigMap
+答案: C
+
+167、Jenkins Pipeline 使用哪种文件格式编写?()
+A、XML
+B、YAML
+C、JSON
+D、INI
+答案: B
+
+168、内存较大的虚拟机通常采用()迁移方式减少停机时间。
+A、冷迁移
+B、热迁移/动态迁移
+C、离线迁移
+D、快照迁移
+答案: B
+
+169、"仅主机模式"默认使用的虚拟网卡是()。
+A、VMnet0
+B、VMnet1
+C、VMnet8
+D、VMnet10
+答案: B
+
+170、Docker 配置镜像加速器或信任地址的文件是()
+A、/etc/docker/daemon.json
+B、/etc/docker/config.json
+C、/etc/hosts
+D、/etc/resolv.conf
+答案: A
+
+171、K8s 负责维护集群期望状态的 Controller 位于()。
+A、Worker Node
+B、Master Node/控制平面
+C、Pod
+D、Container
+答案: B
+
+172、"dir"类型的存储池是基于()实现的。
+A、物理磁盘分区
+B、本地文件目录
+C、iSCSI 设备
+D、NFS 共享目录
+答案: B
+
+173、Docker Compose 定义多个服务启动依赖关系的指令是()。
+A、build
+B、depends_on
+C、volumes
+D、networks
+答案: B
+
+174、CentOS 7 修改网卡配置文件后使其生效的命令是()。
+A、systemctl restart network
+B、reboot
+C、ifconfig up
+D、service network start
+答案: A
+
+175、KVM 关键组成包括嵌入内核的____、提供硬件仿真的____以及统一管理的____。
+答案: KVM模块 ; QEMU ; libvirt
+
+176、OpenStack 中，____管理镜像，____身份认证，____网络服务。
+答案: Glance ; Keystone ; Neutron
+
+177、Docker 构建需编写____文件，命令是____，推送命令是____。
+答案: Dockerfile ; docker build ; docker push
+
+178、K8s 中 Deployment 管理____副本，____暴露访问，____存储配置。
+答案: Pod ; Service ; ConfigMap
+
+179、虚拟机安装____可提升分辨率、实现____和____功能。
+答案: VMware Tools ; 文件共享 ; 复制粘贴
+
+180、KVM 创建磁盘命令____，创建快照____，查看快照____。
+答案: qemu-img create ; qemu-img snapshot -c ; qemu-img snapshot -l
+
+181、Docker 数据持久化方式主要有____、____和____。
+答案: 数据卷 ; 绑定挂载 ; tmpfs挂载
+
+182、DevOps 中____用于代码管理，____持续集成，____容器编排。
+答案: Git ; Jenkins ; Kubernetes/Docker Swarm
+
+183、KVM 参数：____指定名称，____内存，____CPU核心数。
+答案: --name ; -r/--ram ; --vcpus
+
+184、OpenStack 实例依赖____计算、____网络和____块存储。
+答案: Nova ; Neutron ; Cinder
+
+185、VMware Workstation 支持同时运行多个虚拟机。
+答案: 正确
+
+186、KVM 虚拟机只能使用命令行创建，不能使用图形化工具。
+答案: 错误
+
+187、OpenStack 的 Horizon 组件提供了 Web 管理界面。
+答案: 正确
+
+188、Docker 容器停止后，其中的所有数据都会自动丢失。
+答案: 错误
+
+189、Kubernetes 中，一个 Pod 只能运行一个容器。
+答案: 错误
+
+190、Jenkins 只能通过图形界面配置流水线任务。
+答案: 错误
+
+191、KVM 存储池中的"logical"类型基于 LVM 实现。
+答案: 正确
+
+192、Docker Hub 是 Docker 官方提供的公共镜像仓库服务。
+答案: 正确
+
+193、在桥接模式下，虚拟机无法与宿主机通信。
+答案: 错误
+
+194、virtio 驱动需要在客户机中安装才能发挥最佳性能。
+答案: 正确
+
+195、简述在 VMware Workstation 中创建虚拟机的主要步骤。
+答案: 打开 VMwareWorkstation，选择"创建新的虚拟机";选择典型或
+自定义配置;选择稍后安装操作系统或加载 ISO 镜像;选择客户机操作
+
+系统类型及版本;设置虚拟机名称和存储位置;配置处理器、内存、网
+络、磁盘等硬件;完成创建并启动虚拟机安装系统。
+
+196、简述 KVM 冷迁移与热迁移的区别及适用场景。
+答案: 冷迁移:虚拟机关机后迁移，配置简单、兼容性高，适用于计划
+内维护或跨架构迁移;热迁移:虚拟机运行状态下迁移，业务不中断，适
+用于负载均衡、硬件维护等需要高可用性的场景。热迁移要求源宿主
+机与目标宿主机 CPU 架构、虚拟化扩展、网络存储等保持一致。
+
+197、简述 Docker 仓库分类及搭建私有仓库。
+答案: Docker 仓库分为公有仓库(如 DockerHub)和私有仓库。公有仓
+库提供公共镜像下载与分享;私有仓库用于企业内部镜像的安全存储与
+分发。搭建私有仓库可通过运行 registry 容器实现，如 dockerrun-d
+p 5000:5000--name registry registry，并配置/etc/docker/daemon.json 信任
+该地址后使用 dockerpush/pull。
+
+198、简述 K8s 中 Deployment、Service 和 Pod 的关系。
+答案: Pod 是最小调度单元，运行一个或多个容器;Deployment 用于声
+明和管理 Pod 的期望状态，如副本数、更新策略;Service 为 Pod 提供
+稳定的网络访问入口和负载均衡。用户通过 Deployment 创建并管理
+Pod，通过 Service 暴露 Pod 服务。
+
+199、简述 DevOps 与 CI/CD 关系及 Jenkins 步骤。
+答案: DevOps 是一种强调协作、自动化和快速交付的文化与方法
+论;CI/CD 是 DevOps 的核心实践，通过自动化实现代码集成、测试、
+部署。Jenkins 典型步骤:从 Git 仓库拉取代码;执行编译构建;运行自动
+化测试;生成构建产物;部署到测试/生产环境;发送构建通知。
+
+200、在 VMware Workstation 中，"快照"功能主要用于？
+A、提升虚拟机运行速度
+B、保存虚拟机某一时刻状态并支持回退
+C、配置虚拟机网络
+D、安装操作系统
+答案: B
+`;
+
+    // 题库解析器
+    function parseQuizData(rawText) {
+        const questions = [];
+        // 按题目序号分割
+        const blocks = rawText.split(/\n(?=\d+、)/).filter(b => b.trim());
+        
+        blocks.forEach(block => {
+            const lines = block.split('\n').map(l => l.trim()).filter(l => l);
+            let qText = "", ansText = "", expText = "";
+            let options = [];
+            let qType = "short"; // 默认简答题
+            let currentSect = "q";
+            
+            lines.forEach(line => {
+                if (/^[A-D]、/.test(line)) {
+                    options.push(line);
+                    qType = "mcq";
+                    currentSect = "opt";
+                } else if (/^答案[:：]/.test(line)) {
+                    ansText = line.replace(/^答案[:：]\s*/, "").trim();
+                    currentSect = "ans";
+                } else if (/^解析[:：]/.test(line)) {
+                    expText = line.replace(/^解析[:：]\s*/, "").trim();
+                    currentSect = "exp";
+                } else {
+                    if (currentSect === "q") qText += (qText ? "\n" : "") + line;
+                    else if (currentSect === "ans") ansText += (ansText ? "\n" : "") + line;
+                    else if (currentSect === "exp") expText += (expText ? "\n" : "") + line;
+                }
+            });
+
+            // 判断题检测（如果没有选项但答案是正确/错误）
+            if (options.length === 0 && (ansText === "正确" || ansText === "错误")) {
+                qType = "tf";
+                options = ["正确", "错误"];
+            }
+
+            // 获取正确索引 (针对单选和判断)
+            let correctIndex = -1;
+            if (qType === "mcq") {
+                const match = ansText.match(/[A-D]/);
+                if (match) correctIndex = match[0].charCodeAt(0) - 65;
+            } else if (qType === "tf") {
+                correctIndex = ansText === "正确" ? 0 : 1;
+            }
+
+            questions.push({
+                question: qText,
+                type: qType,
+                options: options,
+                answer: ansText,
+                explanation: expText,
+                correctIndex: correctIndex
+            });
+        });
+        return questions;
+    }
+
+    // 初始化题库
+    const quizData = parseQuizData(rawData);
+    
+    // 应用状态
+    let currentIndex = 0;
+    let isMemorizeMode = false;
+    let userAnswers = new Array(quizData.length).fill(null);
+    let currentCategory = 'all';
+    let filteredIndexes = [];
+    let currentFiltered = 0;
+
+    function updateFilteredIndexes() {
+        filteredIndexes = quizData
+            .map((_, idx) => idx)
+            .filter(idx => currentCategory === 'all' || quizData[idx].type === currentCategory);
+        if (filteredIndexes.length === 0) {
+            filteredIndexes = quizData.map((_, idx) => idx);
+            currentCategory = 'all';
+        }
+        if (currentFiltered >= filteredIndexes.length) {
+            currentFiltered = filteredIndexes.length - 1;
+        }
+    }
+
+    function changeCategory(event) {
+        currentCategory = event.target.value;
+        currentFiltered = 0;
+        updateFilteredIndexes();
+        renderQuestion();
+    }
+
+    // DOM 元素
+    const elements = {
+        progress: document.getElementById('progress'),
+        qTypeLabel: document.getElementById('qTypeLabel'),
+        question: document.getElementById('questionText'),
+        options: document.getElementById('optionsContainer'),
+        saContainer: document.getElementById('saContainer'),
+        explanation: document.getElementById('explanationText'),
+        prevBtn: document.getElementById('prevBtn'),
+        nextBtn: document.getElementById('nextBtn'),
+        modeBtn: document.getElementById('modeBtn'),
+        app: document.getElementById('app'),
+        jumpInput: document.getElementById('jumpInput')
+    };
+
+    function renderQuestion() {
+        const actualIndex = filteredIndexes[currentFiltered];
+        const currentData = quizData[actualIndex];
+        
+        // 渲染基础信息
+        elements.progress.innerText = `${currentFiltered + 1} / ${filteredIndexes.length}` + (currentCategory === 'all' ? '' : ` (共 ${filteredIndexes.length} 题)`);
+        elements.question.innerText = currentData.question;
+        elements.jumpInput.value = currentFiltered + 1;
+        
+        // 类型标签设置
+        const typeLabels = { mcq: "单选题", tf: "判断题", short: "填空/简答题" };
+        elements.qTypeLabel.innerText = typeLabels[currentData.type] || "未知题型";
+        
+        // 重置视图
+        elements.options.innerHTML = '';
+        elements.options.style.display = 'none';
+        elements.saContainer.style.display = 'none';
+        elements.explanation.style.display = 'none';
+        
+        const showExpHTML = `<span class="ans-label">正确答案: ${currentData.answer}</span>` + 
+                            (currentData.explanation ? `解析: ${currentData.explanation}` : '');
+
+        if (currentData.type === 'mcq' || currentData.type === 'tf') {
+            elements.options.style.display = 'flex';
+            currentData.options.forEach((opt, index) => {
+                const div = document.createElement('div');
+                div.className = 'option';
+                div.innerText = opt;
+                div.onclick = () => handleOptionClick(index);
+                
+                if (isMemorizeMode) {
+                    if (index === currentData.correctIndex) div.classList.add('correct');
+                } else {
+                    if (userAnswers[actualIndex] !== null) {
+                        if (index === currentData.correctIndex) div.classList.add('correct');
+                        else if (index === userAnswers[actualIndex]) div.classList.add('wrong');
+                    }
+                }
+                elements.options.appendChild(div);
+            });
+            
+            if (isMemorizeMode || userAnswers[actualIndex] !== null) {
+                elements.explanation.innerHTML = showExpHTML;
+                elements.explanation.style.display = 'block';
+            }
+            
+        } else {
+            // 简答题逻辑
+            if (isMemorizeMode || userAnswers[actualIndex] === 'viewed') {
+                elements.explanation.innerHTML = showExpHTML;
+                elements.explanation.style.display = 'block';
+            } else {
+                elements.saContainer.style.display = 'block';
+            }
+        }
+
+        // 按钮状态
+        elements.prevBtn.disabled = currentFiltered === 0;
+        elements.nextBtn.disabled = currentFiltered === filteredIndexes.length - 1;
+    }
+
+    function handleOptionClick(selectedIndex) {
+        if (isMemorizeMode) return;
+        const actualIndex = filteredIndexes[currentFiltered];
+        if (userAnswers[actualIndex] !== null) return;
+        userAnswers[actualIndex] = selectedIndex;
+        renderQuestion();
+    }
+    
+    function showSAAnswer() {
+        if (isMemorizeMode) return;
+        const actualIndex = filteredIndexes[currentFiltered];
+        userAnswers[actualIndex] = 'viewed'; // 标记已查看
+        renderQuestion();
+    }
+
+    function toggleMode() {
+        isMemorizeMode = !isMemorizeMode;
+        elements.modeBtn.innerText = isMemorizeMode ? "当前: 背题模式" : "当前: 刷题模式";
+        elements.app.classList.toggle('memorize-mode', isMemorizeMode);
+        renderQuestion();
+    }
+
+    function prevQuestion() { if (currentFiltered > 0) { currentFiltered--; renderQuestion(); } }
+    function nextQuestion() { if (currentFiltered < filteredIndexes.length - 1) { currentFiltered++; renderQuestion(); } }
+    function jumpTo() {
+        let val = parseInt(elements.jumpInput.value);
+        if(!isNaN(val) && val >= 1 && val <= filteredIndexes.length) {
+            currentFiltered = val - 1;
+            renderQuestion();
+        } else {
+            alert(`请输入 1 到 ${filteredIndexes.length} 之间的题号`);
+        }
+    }
+
+    // 初始化过滤并渲染
+    updateFilteredIndexes();
+    renderQuestion();
+</script>
+
+</body>
+</html>
