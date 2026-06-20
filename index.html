@@ -68,7 +68,8 @@
                 <option value="all">全部</option>
                 <option value="mcq">单选题</option>
                 <option value="tf">判断题</option>
-                <option value="short">填空/简答题</option>
+                <option value="blank">填空题</option>
+                <option value="short">简答题</option>
             </select>
         </div>
         <span class="progress" id="progress">1 / 200</span>
@@ -486,25 +487,24 @@ C、看情况而定
 D、以上均不正确
 答案: B
 
-65、在 NFS 中，服务器的 ip 是 192.168.226.100，服务器的共享目录是/share_server_1, 客户端的挂载目录是/client_to_server_1，想要将客户端的挂载目录与服务器的共享目录挂载成功，需要键入一下哪个指令？
-A、mount nfs-t 192.168.226.100:/share_server_1 /client_to_server_1
-B、mountnfs-t 192.168.226.100:/client_to_server_1 /share_server_1
-C、mount-t nfs 192.168.226.100:/share_server_1 /client_to_server_1
-D、mount-tnfs 192.168.226.100:/client_to_server_1 /share_server_1
+65、想要将客户端挂载目录与NFS服务器挂载成功，需要键入哪个指令？
+A、mount nfs -t 192.168.226.100:/s1 /c1
+B、mount nfs -t 192.168.226.100:/c1 /s1
+C、mount -t nfs 192.168.226.100:/s1 /c1
+D、mount -t nfs 192.168.226.100:/c1 /s1
 答案: C
 
 66、以下关于 LVM 的说法哪个是错误的？
 A、LVM 可以将多块硬盘看作一块大硬盘。
-B、LVM 可以创建小的逻辑卷（LV），在空间不足时再动态调整它的大小。
-C、LVM 不允许被创建快照，也不可以保存文件系统的备份。
-D、LVM 可以在调整逻辑卷（LV）大小时可以不用考虑逻辑卷在硬盘
-上的位置，不用担心没有可用的连续空间。
+B、可以动态调整 LV 的大小。
+C、LVM 不允许被创建快照。
+D、调整 LV 大小时不用考虑在硬盘上的物理位置。
 答案: C
 
 67、以下关于虚拟网桥，说法正确的是？
 A、虚拟网桥不是网桥概念在网络虚拟化环境中的延伸。
-B、虚拟网桥以软件的形式运行在虚拟化平台上，也可以像传统网桥那样以硬件设备的形式存在。
-C、虚拟网桥可以连接虚拟机之间的虚拟网络接口，但不可以连接虚拟网络与物理网络接口，因此想要实现不同虚拟网络或虚拟机与外部网络之间的通信需要一个额外的 NAT 设备。
+B、虚拟网桥也可以像传统网桥那样以硬件设备形式存在。
+C、虚拟网桥不可以连接虚拟网络与物理网络接口。
 D、以上均不正确
 答案: D
 
@@ -1236,9 +1236,23 @@ D、安装操作系统
             });
 
             // 判断题检测（如果没有选项但答案是正确/错误）
-            if (options.length === 0 && (ansText === "正确" || ansText === "错误")) {
-                qType = "tf";
-                options = ["正确", "错误"];
+            if (options.length === 0) {
+                if (ansText === "正确" || ansText === "错误") {
+                    qType = "tf";
+                    options = ["正确", "错误"];
+                } else {
+                    const blankPatterns = [/填空/, /空格/, /____+/, /——+/, /填上/];
+                    const shortAnswerPatterns = [/简述/, /简答/, /说明/, /描述/, /解释/, /列出/, /写出/, /谈谈/, /概括/, /总结/, /是什么/];
+                    if (blankPatterns.some(p => p.test(qText))) {
+                        qType = "blank";
+                    } else if (shortAnswerPatterns.some(p => p.test(qText))) {
+                        qType = "short";
+                    } else if (ansText.length <= 20 && !/[，。？！；]/.test(ansText)) {
+                        qType = "blank";
+                    } else {
+                        qType = "short";
+                    }
+                }
             }
 
             // 获取正确索引 (针对单选和判断)
@@ -1318,7 +1332,7 @@ D、安装操作系统
         elements.jumpInput.value = currentFiltered + 1;
         
         // 类型标签设置
-        const typeLabels = { mcq: "单选题", tf: "判断题", short: "填空/简答题" };
+        const typeLabels = { mcq: "单选题", tf: "判断题", blank: "填空题", short: "简答题" };
         elements.qTypeLabel.innerText = typeLabels[currentData.type] || "未知题型";
         
         // 重置视图
