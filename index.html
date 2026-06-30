@@ -15,6 +15,10 @@
         .filter { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #333; }
         .filter label { color: #555; }
         .filter select { padding: 7px 10px; border-radius: 8px; border: 1px solid #ccc; background: white; color: #333; font-size: 14px; }
+        .search { display: flex; align-items: center; gap: 8px; }
+        .search-input { padding: 7px 10px; border-radius: 8px; border: 1px solid #ccc; background: white; color: #333; font-size: 14px; min-width: 180px; }
+        .search-btn { padding: 7px 12px; border-radius: 8px; border: 1px solid #ccc; background: #f4f6f8; color: #333; font-size: 14px; cursor: pointer; }
+        .search-btn:hover { background: #e8eef6; }
         .question { font-size: 17px; font-weight: bold; line-height: 1.6; margin-bottom: 25px; white-space: pre-wrap;}
         
         /* 选项样式 */
@@ -45,6 +49,17 @@
         .btn-prev:hover { background-color: #e9ecef; }
         .btn-next:hover { background-color: #357abd; }
         .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .header-actions { display: flex; align-items: center; gap: 10px; }
+        .search-banner { display: flex; align-items: center; gap: 8px; }
+        .search-input { padding: 7px 10px; border-radius: 8px; border: 1px solid #ccc; background: white; color: #333; font-size: 14px; min-width: 220px; }
+        .search-btn { padding: 7px 12px; border-radius: 8px; border: 1px solid #ccc; background: #f4f6f8; color: #333; font-size: 14px; cursor: pointer; }
+        .search-btn:hover { background: #e8eef6; }
+        .search-results { margin-top: 20px; }
+        .result-card { border: 1px solid #e8eaed; border-radius: 10px; padding: 18px; margin-bottom: 18px; background: #fbfcfd; }
+        .result-card h3 { margin: 0 0 12px; font-size: 16px; color: #1f3d7a; }
+        .result-card p { margin: 8px 0; line-height: 1.6; }
+        .result-card .result-answer { font-weight: bold; color: #0d47a1; }
+        .result-card .result-explain { color: #444; white-space: pre-wrap; }
         
         /* 侧边题号跳转栏（简易版） */
         .jump-box { margin-top: 20px; display: flex; align-items: center; justify-content: flex-end; gap: 10px; font-size: 14px; color: #666;}
@@ -56,7 +71,14 @@
 
 <div class="header">
     <span>虚拟化与存储技术</span>
-    <button class="mode-switch" id="modeBtn" onclick="toggleMode()">当前: 刷题模式</button>
+    <div class="header-actions">
+        <div class="search-banner">
+            <input type="text" id="searchInput" class="search-input" placeholder="搜索题目 / 答案 / 解析" onkeydown="handleSearchKey(event)">
+            <button class="search-btn" onclick="applySearch()">搜索</button>
+            <button class="search-btn" onclick="clearSearch()">清除</button>
+        </div>
+        <button class="mode-switch" id="modeBtn" onclick="toggleMode()">当前: 刷题模式</button>
+    </div>
 </div>
 
 <div class="container" id="app">
@@ -84,13 +106,14 @@
     </div>
     
     <div class="explanation" id="explanationText"></div>
+    <div class="search-results" id="searchResults"></div>
     
     <div class="controls">
         <button class="btn btn-prev" id="prevBtn" onclick="prevQuestion()">上一题</button>
         <button class="btn btn-next" id="nextBtn" onclick="nextQuestion()">下一题</button>
     </div>
     
-    <div class="jump-box">
+    <div class="jump-box" id="jumpBox">
         跳转到: <input type="number" id="jumpInput" class="jump-input" min="1" max="200">
         <button class="jump-btn" onclick="jumpTo()">Go</button>
     </div>
@@ -1284,16 +1307,31 @@ D、安装操作系统
     let isMemorizeMode = false;
     let userAnswers = new Array(quizData.length).fill(null);
     let currentCategory = 'all';
+    let currentSearch = '';
+    let searchMode = false;
     let filteredIndexes = [];
     let currentFiltered = 0;
 
     function updateFilteredIndexes() {
+        const searchLower = currentSearch.toLowerCase();
         filteredIndexes = quizData
             .map((_, idx) => idx)
-            .filter(idx => currentCategory === 'all' || quizData[idx].type === currentCategory);
+            .filter(idx => {
+                const matchesCategory = currentCategory === 'all' || quizData[idx].type === currentCategory;
+                if (!matchesCategory) return false;
+                if (!searchLower) return true;
+                const searchableText = [
+                    quizData[idx].question,
+                    quizData[idx].answer,
+                    quizData[idx].explanation,
+                    quizData[idx].options.join(' ')
+                ].join(' ').toLowerCase();
+                return searchableText.includes(searchLower);
+            });
+
         if (filteredIndexes.length === 0) {
-            filteredIndexes = quizData.map((_, idx) => idx);
-            currentCategory = 'all';
+            currentFiltered = 0;
+            return;
         }
         if (currentFiltered >= filteredIndexes.length) {
             currentFiltered = filteredIndexes.length - 1;
@@ -1307,6 +1345,29 @@ D、安装操作系统
         renderQuestion();
     }
 
+    function applySearch() {
+        currentSearch = document.getElementById('searchInput').value.trim();
+        searchMode = !!currentSearch;
+        currentFiltered = 0;
+        updateFilteredIndexes();
+        renderQuestion();
+    }
+
+    function clearSearch() {
+        document.getElementById('searchInput').value = '';
+        currentSearch = '';
+        searchMode = false;
+        currentFiltered = 0;
+        updateFilteredIndexes();
+        renderQuestion();
+    }
+
+    function handleSearchKey(event) {
+        if (event.key === 'Enter') {
+            applySearch();
+        }
+    }
+
     // DOM 元素
     const elements = {
         progress: document.getElementById('progress'),
@@ -1315,19 +1376,43 @@ D、安装操作系统
         options: document.getElementById('optionsContainer'),
         saContainer: document.getElementById('saContainer'),
         explanation: document.getElementById('explanationText'),
+        searchResults: document.getElementById('searchResults'),
         prevBtn: document.getElementById('prevBtn'),
         nextBtn: document.getElementById('nextBtn'),
         modeBtn: document.getElementById('modeBtn'),
         app: document.getElementById('app'),
-        jumpInput: document.getElementById('jumpInput')
+        jumpInput: document.getElementById('jumpInput'),
+        jumpBox: document.getElementById('jumpBox'),
+        controls: document.querySelector('.controls')
     };
 
     function renderQuestion() {
+        if (searchMode) {
+            renderSearchResults();
+            return;
+        }
+
+        if (filteredIndexes.length === 0) {
+            elements.progress.innerText = `0 / 0` + (currentCategory === 'all' ? '' : ` (共 0 题)`);
+            elements.question.innerText = `未找到匹配题目，请修改搜索条件。`;
+            elements.jumpInput.value = 0;
+            elements.options.innerHTML = '';
+            elements.options.style.display = 'none';
+            elements.saContainer.style.display = 'none';
+            elements.explanation.style.display = 'none';
+            elements.searchResults.style.display = 'none';
+            elements.prevBtn.disabled = true;
+            elements.nextBtn.disabled = true;
+            elements.controls.style.display = 'none';
+            elements.jumpBox.style.display = 'none';
+            return;
+        }
         const actualIndex = filteredIndexes[currentFiltered];
         const currentData = quizData[actualIndex];
         
         // 渲染基础信息
-        elements.progress.innerText = `${currentFiltered + 1} / ${filteredIndexes.length}` + (currentCategory === 'all' ? '' : ` (共 ${filteredIndexes.length} 题)`);
+        const searchNote = currentSearch ? ` (匹配 ${filteredIndexes.length} 题)` : '';
+        elements.progress.innerText = `${currentFiltered + 1} / ${filteredIndexes.length}` + (currentCategory === 'all' ? searchNote : ` (共 ${filteredIndexes.length} 题)` + searchNote);
         elements.question.innerText = currentData.question;
         elements.jumpInput.value = currentFiltered + 1;
         
@@ -1381,6 +1466,40 @@ D、安装操作系统
         // 按钮状态
         elements.prevBtn.disabled = currentFiltered === 0;
         elements.nextBtn.disabled = currentFiltered === filteredIndexes.length - 1;
+        elements.controls.style.display = '';
+        elements.jumpBox.style.display = '';
+        elements.searchResults.style.display = 'none';
+    }
+
+    function renderSearchResults() {
+        elements.question.innerText = '搜索结果';
+        elements.progress.innerText = `搜索结果 ${filteredIndexes.length} 题`;
+        elements.options.innerHTML = '';
+        elements.options.style.display = 'none';
+        elements.saContainer.style.display = 'none';
+        elements.explanation.style.display = 'none';
+        elements.controls.style.display = 'none';
+        elements.jumpBox.style.display = 'none';
+        elements.searchResults.style.display = 'block';
+
+        if (filteredIndexes.length === 0) {
+            elements.searchResults.innerHTML = '<div class="result-card">未找到匹配题目，请修改搜索条件。</div>';
+            return;
+        }
+
+        const html = filteredIndexes.map((idx, order) => {
+            const item = quizData[idx];
+            const typeLabels = { mcq: '单选题', tf: '判断题', blank: '填空题', short: '简答题' };
+            const optionsHtml = item.options.length ? `<p>选项: ${item.options.join(' ')}</p>` : '';
+            const explanationHtml = item.explanation ? `<p class="result-explain">解析: ${item.explanation}</p>` : '';
+            return `<div class="result-card">
+                        <h3>${order + 1}. [${typeLabels[item.type] || '题目'}] ${item.question}</h3>
+                        ${optionsHtml}
+                        <p class="result-answer">答案: ${item.answer}</p>
+                        ${explanationHtml}
+                    </div>`;
+        }).join('');
+        elements.searchResults.innerHTML = html;
     }
 
     function handleOptionClick(selectedIndex) {
