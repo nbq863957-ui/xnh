@@ -65,6 +65,36 @@
         .jump-box { margin-top: 20px; display: flex; align-items: center; justify-content: flex-end; gap: 10px; font-size: 14px; color: #666;}
         .jump-input { width: 50px; padding: 5px; text-align: center; border: 1px solid #ccc; border-radius: 4px;}
         .jump-btn { padding: 5px 10px; background: #eee; border: 1px solid #ccc; border-radius: 4px; cursor: pointer;}
+
+        @media screen and (max-width: 900px) {
+            .container { margin: 15px 12px; padding: 18px; }
+            .header { flex-wrap: wrap; justify-content: center; text-align: center; padding: 15px 16px; }
+            .header-actions { width: 100%; flex-direction: column; align-items: stretch; gap: 10px; }
+            .search-banner { width: 100%; flex-direction: column; align-items: stretch; }
+            .search-input { min-width: auto; width: 100%; }
+            .mode-switch { width: 100%; }
+            .top-bar { flex-direction: column; align-items: stretch; gap: 12px; }
+            .filter { flex-wrap: wrap; justify-content: space-between; }
+            .filter select { width: 100%; max-width: 100%; }
+            .progress { text-align: left; }
+            .controls { flex-direction: column; }
+            .btn { width: 100%; }
+            .jump-box { justify-content: flex-start; flex-wrap: wrap; }
+            .jump-input { width: 80px; }
+        }
+
+        @media screen and (max-width: 600px) {
+            .header { padding: 14px 12px; }
+            .header-actions { gap: 8px; }
+            .search-btn { width: 100%; }
+            .question { font-size: 16px; }
+            .option { font-size: 14px; padding: 12px 14px; }
+            .explanation, .result-card { padding: 16px; }
+            .result-card h3 { font-size: 15px; }
+            .result-card p { font-size: 14px; }
+            .jump-box { gap: 8px; font-size: 13px; }
+            .jump-input { width: 72px; }
+        }
     </style>
 </head>
 <body>
